@@ -5,14 +5,37 @@ provider:
   runtime: python3.8
 
 functions:
-  hello:
-    handler: handler.hello
+  getPosts:
+    handler: lambda_handler.get_n_posts
+  getPostById:
+    handler: lambda_handler.get_post
+  uploadPost:
+    handler: lambda_handler.upload_post
+  loadComments:
+    handler: lambda_handler.get_all_comments
+  saveComment:
+    handler: lambda_handler.save_comment
+  deleteComment:
+    handler: lambda_handler.delete_comment
+  upvotePost:
+    handler: lambda_handler.upvote_post
+  downvotePost:
+    handler: lambda_handler.downvote_post
+  searchPost:
+    handler: lambda_handler.search_post
+  moveNewPosts:
+    handler: lambda_handler.move_new
+    # events:
+    #   - schedule: rate(5 minutes)
+  moveTrendingPosts:
+    handler: lambda_handler.move_trending
+    # events:
+    #   - schedule: rate(1 hour)
     
   
 
 plugins:
   - serverless-python-requirements
-
 custom:
   pythonRequirements:
     dockerizePip: non-linux
