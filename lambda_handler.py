@@ -9,10 +9,13 @@ s3 = boto3.client('s3')
 
 @ensure_db_connection
 def get_n_posts(event, context, db_connection):
-    if not event['queryStringParameters']['start'] or not event['queryStringParameters']['end']:
+    if not event['queryStringParameters']['page']:
         return
-
-    return PostHandler(db_connection).get_n_posts(event['queryStringParameters']['start'], event['queryStringParameters']['end'])
+        
+    return PostHandler(db_connection).get_n_posts(
+        event['queryStringParameters']['page'],
+        event['queryStringParameters']['section'],
+        event['queryStringParameters']['number_of_posts'])
 
 
 @ensure_db_connection

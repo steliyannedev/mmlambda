@@ -15,23 +15,28 @@ class PostHandler:
         self.s3 = s3
         self.bucket_location = 's3-image-storing-bucket'
     
-    def get_n_posts(self, start, end):
+    def get_n_posts(self, page, section, number_of_posts):
         responseObject = self.__generate_response_dict()
+        print('page: ', page)
 
         try:
             cursor = self.db_connection.cursor()
             cursor.execute("""
                 select p.* , count(ct.commnet) as number_of_comments from public.posts p 
                 left join public.comments_table ct on p.post_id = ct.post_id 
+                where sections = '{}'
                 group by p.post_id 
+                order by created_on
                 offset {}
                 limit {}
-            """.format(start, end))
+            """.format(section, page, number_of_posts))
 
             result = [row._asdict() for row in cursor]
+            print('result: ', result)
             responseObject['body'] = json.dumps(result, default=str)
 
         except (Exception, psycopg2.DatabaseError) as error:
+            print('error: ', error)
             self.__handle_errors(400, error)
 
         return responseObject
