@@ -26,7 +26,7 @@ class PostHandler:
                 left join public.comments_table ct on p.post_id = ct.post_id 
                 where sections = '{}'
                 group by p.post_id 
-                order by created_on
+                order by created_on desc
                 offset {}
                 limit {}
             """.format(section, page, number_of_posts))
@@ -137,9 +137,68 @@ class PostHandler:
 
         return responseObject
     
-    def upvotePost(self, post_id):
+    def upvote_post(self, post_id, username):
         responseObject = self.__generate_response_dict()
+        try:
+            self.save_like_record(post_id, username)
+            responseObject['body'] = json.dumps('Success')
+        except (Exception, psycopg2.DatabaseError) as error:
+            print('upvote_post', error)
+            self.__handle_errors(400, error)
 
+
+    def save_like_record(self, post_id, username):
+        post_from_db = self.get_post_likes_by_id(post_id, username)
+        print('post_from_db', post_from_db)
+        print('post_id', post_id)
+        print('username', username)
+        if post_from_db is None or post_from_db.likes_dislikes in (-1, 0):
+            try:
+                print('goes inside try')
+                cursor = self.db_connection.cursor()
+                cursor.execute("""
+                INSERT INTO post_likes (username , post_id , likes_dislikes) 
+                VALUES ('{}', {}, 1)
+                ON CONFLICT (username, post_id) DO UPDATE 
+                SET likes_dislikes = post_likes.likes_dislikes + 1;
+                """.format(username, post_id))
+
+                self.db_connection.commit()
+                self.increment_post(post_id)
+        
+            except (Exception, psycopg2.DatabaseError) as error:
+                print('save_like_record error: ', error)
+                self.__handle_errors(400, error)
+
+        elif post_from_db.likes_dislikes == 1:
+            return
+
+
+    def save_dislike_record(self, post_id, username):
+        post_from_db = self.get_post_likes_by_id(post_id, username)
+        if post_from_db is None or post_from_db.likes_dislikes in (1, 0):
+            try:
+                print('save_dislike method')
+                cursor = self.db_connection.cursor()
+                cursor.execute("""
+                INSERT INTO post_likes (username , post_id , likes_dislikes) 
+                VALUES ('{}', {}, -1)
+                ON CONFLICT (username, post_id) DO UPDATE 
+                SET likes_dislikes = post_likes.likes_dislikes - 1;
+                """.format(username, post_id))
+
+                self.db_connection.commit()
+                self.decrement_post(post_id)
+        
+            except (Exception, psycopg2.DatabaseError) as error:
+                print('save_dislike_record error: ', error)
+                self.__handle_errors(400, error)
+
+        elif post_from_db.likes_dislikes == 1:
+            return
+
+    
+    def increment_post(self, post_id):
         try:
             cursor = self.db_connection.cursor()
             cursor.execute("""
@@ -150,17 +209,46 @@ class PostHandler:
 
             self.db_connection.commit()
 
-            responseObject['body'] = json.dumps('Success')
+        except (Exception, psycopg2.DatabaseError) as error:
+            print('increment_post error: ', error)
+            self.__handle_errors(400, error)
+
+
+    def get_liked_posts_by_user(self, username):
+        responseObject = self.__generate_response_dict()
+
+        try:
+            cursor = self.db_connection.cursor()
+            cursor.execute("""
+            select * from public.post_likes where username = '{}'
+            """.format(username))
+
+            self.db_connection.commit()
+
+            result = [row._asdict() for row in cursor]
+            print('result: ', result)
+            responseObject['body'] = json.dumps(result, default=str)
 
         except (Exception, psycopg2.DatabaseError) as error:
+            print('liked posts', error)
             self.__handle_errors(400, error)
 
         return responseObject
+
     
+    def get_post_likes_by_id(self, post_id, username):
+        cursor = self.db_connection.cursor()
+        cursor.execute("""
+        select likes_dislikes from public.post_likes
+        where post_id = {} and username = '{}'
+        """.format(post_id, username))
 
-    def downvoarPost(self, post_id):
-        responseObject = self.__generate_response_dict()
+        self.db_connection.commit()
 
+        return cursor.fetchone()
+            
+
+    def decrement_post(self, post_id):
         try:
             cursor = self.db_connection.cursor()
             cursor.execute("""
@@ -171,14 +259,23 @@ class PostHandler:
 
             self.db_connection.commit()
 
+        except (Exception, psycopg2.DatabaseError) as error:
+            print('increment_post error: ', error)
+            self.__handle_errors(400, error)
+
+    def downvote_post(self, post_id, username):
+        responseObject = self.__generate_response_dict()
+        try:
+            self.save_dislike_record(post_id, username)
             responseObject['body'] = json.dumps('Success')
 
         except (Exception, psycopg2.DatabaseError) as error:
+            print('downvote_post error: ', error)
             self.__handle_errors(400, error)
 
         return responseObject
     
-    def searchResults(self, letters):
+    def search_results(self, letters):
         responseObject = self.__generate_response_dict()
 
         try:
@@ -196,22 +293,22 @@ class PostHandler:
 
         return responseObject
 
-    def moveNewPosts(self):
-        currentDate = datetime.now()
-        d = currentDate - timedelta(hours=1)
+    def move_new_posts(self):
+        # currentDate = datetime.now()
+        # d = currentDate - timedelta(hours=1)
         cursor = self.db_connection.cursor()
         cursor.execute("""
-            update public.posts set sections = 'trending' where created_on < '{}' and created_on > '{}' and post_likes > 10
-            """.format(currentDate, d))
+            update public.posts set sections = 'trending' where post_likes > 0
+            """)
         
         self.db_connection.commit()
 
-    def moveTrendingPosts(self):
-        currentDate = datetime.now()
-        d = currentDate - timedelta(hours=2)
+    def move_trending_posts(self):
+        # currentDate = datetime.now()
+        # d = currentDate - timedelta(hours=2)
         cursor = self.db_connection.cursor()
         cursor.execute("""
-            update public.posts set sections = 'hot' where created_on < '{}' and created_on > '{}' and post_likes > 100
-            """.format(currentDate, d))
+            update public.posts set sections = 'hot' where post_likes > 1
+            """)
         
         self.db_connection.commit()

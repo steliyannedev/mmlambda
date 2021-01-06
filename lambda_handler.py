@@ -61,27 +61,32 @@ def delete_comment(event, context, db_connection):
 def upvote_post(event, context, db_connection):
     if not event['pathParameters']['post_id']:
         return
-
-    return PostHandler(db_connection).upvotePost(event['pathParameters']['post_id'])
+    print(event)
+    return PostHandler(db_connection).upvote_post(event['pathParameters']['post_id'], event['queryStringParameters']['username'])
 
 @ensure_db_connection
 def downvote_post(event, context, db_connection):
     if not event['pathParameters']['post_id']:
         return
 
-    return PostHandler(db_connection).downvoarPost(event['pathParameters']['post_id'])
+    return PostHandler(db_connection).downvote_post(event['pathParameters']['post_id'], event['queryStringParameters']['username'])
 
 @ensure_db_connection
 def search_post(event, context, db_connection):
     if not event['queryStringParameters']['letters']:
         return
     
-    return PostHandler(db_connection).searchResults(event['queryStringParameters']['letters'])
+    return PostHandler(db_connection).search_results(event['queryStringParameters']['letters'])
 
 @ensure_db_connection
-def move_new(db_connection):
-    return PostHandler(db_connection).moveNewPosts()
+def move_new(event, context, db_connection):
+    return PostHandler(db_connection).move_new_posts()
 
 @ensure_db_connection
-def move_trending(db_connection):
-    return PostHandler(db_connection).moveTrendingPosts()
+def move_trending(event, context, db_connection):
+    return PostHandler(db_connection).move_trending_posts()
+
+@ensure_db_connection
+def get_liked_posts(event, context, db_connection):
+    print(event)
+    return PostHandler(db_connection).get_liked_posts_by_user(event['pathParameters']['username'])

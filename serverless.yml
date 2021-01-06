@@ -30,7 +30,9 @@ functions:
   moveTrendingPosts:
     handler: lambda_handler.move_trending
     # events:
-    #   - schedule: rate(1 hour)
+    #   - schedule: rate(5 minutes)
+  getLikesByUser:
+    handler: lambda_handler.get_liked_posts
     
   
 
