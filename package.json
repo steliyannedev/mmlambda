@@ -1,16 +1,6 @@
 {
-  "name": "mmeme-lambda",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC",
-  "dependencies": {},
-  "devDependencies": {
-    "serverless-python-requirements": "^5.1.0",
-    "serverless-wsgi": "^1.7.5"
-  }
+  "name": "TEST",
+  "symbol": "T",
+  "description": "Only Possible On Solana",
+  "image": "https://raw.githubusercontent.com/solana-developers/opos-asset/main/assets/DeveloperPortal/image.png",
 }
